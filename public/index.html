@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Total Phone Bill</title>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Total Phone Bill</h1>
+    </header>
+    <main x-data="phoneBillApp()">
+        <div class="container">
+            <!-- Price Plan Selection -->
+            <section class="section">
+                <h2>Price Plan Selection</h2>
+                <div class="form-group">
+                    <label for="pricePlan">Price Plan:</label>
+                    <select x-model="selectedPlanId" id="pricePlan">
+                        <option value="">Select a Plan</option>
+                        <template x-for="plan in pricePlans" :key="plan.id">
+                            <option :value="plan.id" x-text="`${plan.plan_name} - ID: ${plan.id}`"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="actions">Actions:</label>
+                    <input type="text" id="actions" x-model="actions" placeholder="call, sms, call">
+                </div>
+
+                <button @click="calculateBill()">Calculate</button>
+
+                <div class="total">
+                    <h3>Total: <span x-text="total"></span></h3>
+                </div>
+            </section>
+
+            <!-- Create, Update, Delete Price Plan Sections -->
+            <section class="section">
+                <h2>Create, Update, and Delete Price Plans</h2>
+                <div class="form-group">
+                    <label for="createPlanName">Plan Name:</label>
+                    <input type="text" id="createPlanName" x-model="createPlanName" placeholder="Plan name">
+                </div>
+                <div class="form-group">
+                    <label for="createCallCost">Call Cost:</label>
+                    <input type="number" id="createCallCost" x-model="createCallCost" placeholder="Call cost" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="createSmsCost">SMS Cost:</label>
+                    <input type="number" id="createSmsCost" x-model="createSmsCost" placeholder="SMS cost" step="0.01">
+                </div>
+                <button @click="createPricePlan()">Create Plan</button>
+
+                <div class="form-group">
+                    <label for="updatePlanId">Plan ID:</label>
+                    <input type="number" id="updatePlanId" x-model="updatePlanId" placeholder="Plan ID">
+                </div>
+                <div class="form-group">
+                    <label for="updatePlanName">Plan Name:</label>
+                    <input type="text" id="updatePlanName" x-model="updatePlanName" placeholder="Plan name">
+                </div>
+                <div class="form-group">
+                    <label for="updateCallCost">Call Cost:</label>
+                    <input type="number" id="updateCallCost" x-model="updateCallCost" placeholder="Call cost" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="updateSmsCost">SMS Cost:</label>
+                    <input type="number" id="updateSmsCost" x-model="updateSmsCost" placeholder="SMS cost" step="0.01">
+                </div>
+                <button @click="updatePricePlan()">Update Plan</button>
+
+                <div class="form-group">
+                    <label for="deletePlanId">Plan ID:</label>
+                    <input type="number" id="deletePlanId" x-model="deletePlanId" placeholder="Plan ID">
+                </div>
+                <button @click="deletePricePlan()">Delete Plan</button>
+            </section>
+
+            <!-- Fetch All Price Plans Section -->
+            <section class="section">
+                <h2>All Price Plans</h2>
+                <button @click="fetchPricePlans()">Fetch All Price Plans</button>
+                <ul>
+                    <template x-for="plan in pricePlans" :key="plan.id">
+                        <li x-text="`ID: ${plan.id} - Name: ${plan.plan_name} - Call: ${plan.call_price} - SMS: ${plan.sms_price}`"></li>
+                    </template>
+                </ul>
+            </section>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Total Phone Bill. All rights reserved.</p>
+    </footer>
+    <script>
+        function phoneBillApp() {
+            return {
+                selectedPlanId: '',
+                actions: '',
+                total: 0,
+                pricePlans: [],
+                createPlanName: '',
+                createCallCost: 0,
+                createSmsCost: 0,
+                updatePlanId: '',
+                updatePlanName: '',
+                updateCallCost: 0,
+                updateSmsCost: 0,
+                deletePlanId: '',
+
+                async fetchPricePlans() {
+                    try {
+                        const response = await fetch('http://localhost:4011/api/price_plans');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        this.pricePlans = await response.json();
+                    } catch (error) {
+                        console.error('Failed to fetch price plans:', error);
+                        alert('Failed to load price plans. Please try again later.');
+                    }
+                },
+
+                async calculateBill() {
+                    if (!this.selectedPlanId) {
+                        alert('Please select a price plan.');
+                        return;
+                    }
+
+                    if (!this.actions) {
+                        alert('Please enter actions.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('http://localhost:4011/api/phonebill', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                price_plan_id: this.selectedPlanId,
+                                actions: this.actions
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        this.total = data.total || '0'; 
+                    } catch (error) {
+                        console.error('Failed to calculate bill:', error);
+                        alert('An error occurred while calculating the bill. Please try again.');
+                    }
+                },
+
+                async createPricePlan() {
+                    if (!this.createPlanName || this.createCallCost <= 0 || this.createSmsCost <= 0) {
+                        alert('Please fill out all fields with valid values.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/price_plan/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: this.createPlanName,
+                                call_cost: parseFloat(this.createCallCost).toFixed(2),
+                                sms_cost: parseFloat(this.createSmsCost).toFixed(2)
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        alert('Price plan created successfully.');
+                        this.createPlanName = '';
+                        this.createCallCost = 0;
+                        this.createSmsCost = 0;
+                        this.pricePlans = []; 
+                    } catch (error) {
+                        console.error('Failed to create price plan:', error);
+                        alert('An error occurred while creating the price plan. Please try again.');
+                    }
+                },
+
+                async updatePricePlan() {
+                    if (!this.updatePlanId || !this.updatePlanName || this.updateCallCost <= 0 || this.updateSmsCost <= 0) {
+                        alert('Please fill out all fields with valid values.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/price_plan/update', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: this.updatePlanId,
+                                name: this.updatePlanName,
+                                call_cost: parseFloat(this.updateCallCost).toFixed(2),
+                                sms_cost: parseFloat(this.updateSmsCost).toFixed(2)
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        alert('Price plan updated successfully.');
+                        this.updatePlanId = '';
+                        this.updatePlanName = '';
+                        this.updateCallCost = 0;
+                        this.updateSmsCost = 0;
+                        this.pricePlans = []; 
+                    } catch (error) {
+                        console.error('Failed to update price plan:', error);
+                        alert('An error occurred while updating the price plan. Please try again.');
+                    }
+                },
+
+                async deletePricePlan() {
+                    if (!this.deletePlanId) {
+                        alert('Please enter a plan ID.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/price_plan/delete/${this.deletePlanId}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+
+                        alert('Price plan deleted successfully.');
+                        this.deletePlanId = '';
+                        this.pricePlans = []; // Clear price plans list
+                    } catch (error) {
+                        console.error('Failed to delete price plan:', error);
+                        alert('An error occurred while deleting the price plan. Please try again.');
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>

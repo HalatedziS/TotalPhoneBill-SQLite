@@ -1,0 +1,46 @@
+# POST /api/phonebill/
+POST http://localhost:4011/api/phonebill/
+Content-Type: application/json
+
+{
+  "price_plan": "Standard Plan V1",
+  "actions": "call,sms,call"
+}
+
+
+
+###
+GET http://localhost:4011/api/price_plans/
+Content-Type: application/json
+
+
+###
+POST http://localhost:4011/api/price_plan/create
+Content-Type: application/json
+
+{
+    "name": "Standard Plan V1",
+    "call_cost": 0.41,
+    "sms_cost": 0.05
+}
+
+
+###
+PUT http://localhost:4011/api/price_plan/update
+Content-Type: application/json
+
+{
+    "name": "Standard Plan TG",
+    "call_cost": 0.53,
+    "sms_cost": 0.25
+}
+
+
+
+####
+DELETE http://localhost:4011/api/price_plan/delete
+Content-Type: application/json
+
+{
+  "id": 18
+}
